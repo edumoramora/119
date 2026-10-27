@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>try / catch · SOLUCIONES · solo para el profesor</title>
+<style>
+  body { margin: 0; background: #0b0705; color: #f6f1ec; font-family: Arial, Helvetica, sans-serif; }
+  main { max-width: 980px; margin: 0 auto; padding: 40px 24px 60px; }
+  .etiqueta { display: inline-block; padding: 8px 20px; border: 1px solid #7a4220; border-radius: 30px; background: #26150a; color: #f0974a; font-size: 14px; letter-spacing: 2px; }
+  h1 { font-size: 44px; margin: 22px 0 8px; }
+  p { line-height: 1.5; color: #d6c8bb; }
+  #botones { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; margin: 26px 0; }
+  button { text-align: left; padding: 16px 20px; border: 1px solid #7a4220; border-radius: 14px; background: #1a100a; color: #f6f1ec; font-size: 16px; cursor: pointer; }
+  button:hover { background: #2a170c; }
+  button b { color: #f0974a; margin-right: 8px; }
+  pre { min-height: 220px; margin: 0; padding: 22px; background: #050302; border: 1px solid #7a4220; border-radius: 14px; font-family: Consolas, "Courier New", monospace; font-size: 16px; line-height: 1.55; white-space: pre-wrap; }
+  .cab { color: #f0974a; font-weight: bold; }
+  .log { color: #f6f1ec; } .aviso { color: #f2d3a0; } .error { color: #ff9b7a; }
+  .sin-control { color: #140a04; background: #f0974a; font-weight: bold; padding: 2px 6px; }
+  .fin { color: #9a8b7d; }
+</style>
+</head>
+<body>
+<main>
+  <span class="etiqueta">SOLUCIONES · solo para el profesor</span>
+  <h1>try / catch</h1>
+  <p>Elige un ejercicio para ejecutarlo. Lo que salga por consola aparece abajo. Si ves una franja naranja de «ERROR SIN CONTROLAR», el programa se ha roto: ese es el error que tienes que controlar.</p>
+  <div id="botones"></div>
+  <pre id="salida">Pulsa un ejercicio…</pre>
+</main>
+<script>
+  const ejercicios = [[1, "Controla el error"], [2, "Un valor por defecto"], [3, "Que el bucle no se pare"], [4, "Algo que no existe"], [5, "Cada error, su mensaje"], [6, "Lanza tu propio error"], [7, "Valida y avisa"], [8, "Finally: siempre se limpia"], [9, "Reto: leer un valor guardado"]];
+  const salida = document.getElementById("salida");
+  let marco = null;
+  let actual = 0;
+
+  for (const [n, titulo] of ejercicios) {
+    const b = document.createElement("button");
+    b.innerHTML = "<b>Ejercicio " + n + "</b>" + titulo;
+    b.addEventListener("click", () => ejecutar(n));
+    document.getElementById("botones").appendChild(b);
+  }
+
+  function anotar(texto, clase) {
+    const linea = document.createElement("div");
+    linea.className = clase;
+    linea.textContent = texto;
+    salida.appendChild(linea);
+  }
+
+  window.addEventListener("message", (ev) => {
+    if (!ev.data || ev.data.id !== actual) return;
+    const { tipo, texto } = ev.data;
+    if (tipo === "sin-control") {
+      const oculto = texto.indexOf("Script error") === 0;   // con doble clic (file://) el navegador esconde el mensaje real
+      anotar("ERROR SIN CONTROLAR → " + texto, "sin-control");
+      if (oculto) anotar("(Para ver el mensaje real del error, abre esta página con Live Server en lugar de con doble clic.)", "aviso");
+    }
+    else if (tipo === "fin") anotar("— fin del programa —", "fin");
+    else anotar(texto, tipo);
+  });
+
+  function ejecutar(n) {
+    actual = n;
+    salida.textContent = "";
+    anotar("▶ ejercicio" + n + ".js", "cab");
+    if (marco) marco.remove();
+    marco = document.createElement("iframe");
+    marco.style.display = "none";
+    // Cada ejercicio corre en su propia página, para que no se mezclen las variables de unos con otras
+    marco.srcdoc = `<!doctype html><html><body>
+<script>
+  const enviar = (tipo, texto) => parent.postMessage({ tipo: tipo, texto: texto, id: ${n} }, "*");
+  const formato = (a) => a.map((x) => typeof x === "string" ? x : (x instanceof Error ? x.name + ": " + x.message : JSON.stringify(x))).join(" ");
+  console.log = (...a) => enviar("log", formato(a));
+  console.warn = (...a) => enviar("aviso", formato(a));
+  console.error = (...a) => enviar("error", formato(a));
+  window.addEventListener("error", (e) => enviar("sin-control", e.error ? e.error.name + ": " + e.error.message : e.message));
+<\/script>
+<script src="ejercicio${n}.js"><\/script>
+<script>enviar("fin", "");<\/script>
+</body></html>`;
+    document.body.appendChild(marco);
+  }
+</script>
+</body>
+</html>
